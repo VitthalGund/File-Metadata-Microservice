@@ -1,6 +1,7 @@
 let express = require('express');
 let cors = require('cors');
-const multer = require("multer");
+const multer = require('multer');
+const path = require('path');
 require('dotenv').config()
 
 let app = express();
@@ -8,31 +9,38 @@ let app = express();
 app.use(cors());
 app.use('/public', express.static(process.cwd() + '/public'));
 
-
-let fileanalyse;
-// SET STORAGE
-let storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    fileanalyse = file;
-    cb(null, 'uploads')
+let filename;
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
   },
-  filename: function (req, file, cb) {
-    cb(null, req.body.name)
-  }
-})
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  },
+});
 
-let upload = multer({ storage: storage })
+const upload = multer({ storage });
 
 app.get('/', function (req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
-app.post("/api/fileanalyse", upload.single('file'), async (req, res) => {
-  if (fileanalyse) {
-    res.status(200).json(fileanalyse);
+// Create a POST route for file uploads
+app.post('/api/fileanalyse', upload.single('upfile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
   }
-});
 
+  // Extract file information
+  const fileInfo = {
+    name: req.file.originalname,
+    type: req.file.mimetype,
+    size: req.file.size,
+  };
+
+  res.json(fileInfo);
+});
 
 
 
